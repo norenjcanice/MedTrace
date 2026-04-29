@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedTrace - Medicine Verification System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #0f172a;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        p.description {
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            font-size: 16px;
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #334155;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        input:focus {
+            border-color: #3b82f6;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.1s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        button:hover {
+            background-color: #2563eb;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .result-section {
+            margin-top: 25px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            color: #64748b;
+            font-style: italic;
+            display: none;
+            margin-top: 20px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-genuine {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .status-fake {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-expired {
+            background-color: #ffedd5;
+            color: #9a3412;
+        }
+
+        .status-suspicious {
+            background-color: #fef9c3;
+            color: #854d0e;
+        }
+
+        .result-item {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .result-item strong {
+            color: #475569;
+        }
+
+        .error-message {
+            color: #ef4444;
+            background: #fee2e2;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .supply-chain-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+        }
+
+        .supply-chain-item {
+            font-size: 13px;
+            padding: 8px;
+            background: #f8fafc;
+            border-left: 3px solid #3b82f6;
+            margin-bottom: 5px;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>MedTrace – Medicine Verification System</h1>
+        <p class="description">Check medicine authenticity and availability in nearby pharmacies</p>
+
+        <div class="section">
+            <h2>Search Medicine</h2>
+            <div class="input-group">
+                <input type="text" id="medName" placeholder="Enter Medicine Name (e.g., Aspirin)">
+                <button onclick="searchMedicine()">Search</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Verify Batch</h2>
+            <div class="input-group">
+                <input type="text" id="batchNumber" placeholder="Enter Batch Number (e.g., B001)">
+                <button onclick="verifyBatch()">Verify</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">Loading...</div>
+        <div id="result" class="result-section"></div>
+    </div>
+
+    <script>
+        const resultBox = document.getElementById('result');
+        const loadingBox = document.getElementById('loading');
+
+        function showLoading() {
+            resultBox.style.display = 'none';
+            resultBox.innerHTML = '';
+            loadingBox.style.display = 'block';
+        }
+
+        function hideLoading() {
+            loadingBox.style.display = 'none';
+        }
+
+        async function searchMedicine() {
+            const name = document.getElementById('medName').value.trim();
+            if (!name) {
+                alert("Please enter a medicine name");
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`/search-medicine?name=${encodeURIComponent(name)}`);
+                const data = await response.json();
+                hideLoading();
+                renderSearchResult(data);
+            } catch (error) {
+                hideLoading();
+                renderError("Error fetching data. Please ensure the server is running.");
+            }
+        }
+
+        async function verifyBatch() {
+            const batch = document.getElementById('batchNumber').value.trim();
+            if (!batch) {
+                alert("Please enter a batch number");
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`/verify/${encodeURIComponent(batch)}`);
+                const data = await response.json();
+                hideLoading();
+                renderVerifyResult(data);
+            } catch (error) {
+                hideLoading();
+                renderError("Error verifying batch. Please check your connection.");
+            }
+        }
+
+        function renderError(message) {
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        function renderSearchResult(data) {
+            resultBox.style.display = 'block';
+            if (data.error || data.message === "Medicine not found") {
+                renderError(data.message || data.error);
+                return;
+            }
+
+            if (data.available_at && data.available_at.length > 0) {
+                let html = `<div class="result-item"><strong>Medicine:</strong> ${data.medicine}</div>`;
+                html += `<div class="result-item"><strong>Available At:</strong></div>`;
+                html += `<ul class="supply-chain-list">`;
+                data.available_at.forEach(loc => {
+                    html += `<li class="supply-chain-item">
+                    <strong>${loc.pharmacy}</strong> (${loc.location})<br>
+                    <span style="color:#64748b; font-size:12px;">Batch: ${loc.batch_number}</span>
+                </li>`;
+                });
+                html += `</ul>`;
+                resultBox.innerHTML = html;
+            } else {
+                resultBox.innerHTML = `<div class="result-item"><strong>Medicine:</strong> ${data.medicine}</div>
+                                   <div class="result-item" style="color:#64748b;">No pharmacies currently have this medicine.</div>`;
+            }
+        }
+
+        function renderVerifyResult(data) {
+            resultBox.style.display = 'block';
+            if (data.error) {
+                renderError(data.error);
+                return;
+            }
+
+            let statusClass = 'status-genuine';
+            if (data.status === 'Fake') statusClass = 'status-fake';
+            else if (data.status === 'Expired') statusClass = 'status-expired';
+            else if (data.status === 'Suspicious') statusClass = 'status-suspicious';
+
+            let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <div class="result-item" style="margin:0;"><strong>Batch:</strong> ${data.batch_number}</div>
+                        <div class="status-badge ${statusClass}">${data.status}</div>
+                    </div>`;
+
+            html += `<div class="result-item"><strong>Medicine:</strong> ${data.medicine_name}</div>`;
+            html += `<div class="result-item"><strong>Manufacturer:</strong> ${data.manufacturer}</div>`;
+
+            if (data.supply_chain && data.supply_chain.length > 0) {
+                html += `<div class="result-item" style="margin-top:15px;"><strong>Supply Chain History:</strong></div>`;
+                html += `<ul class="supply-chain-list">`;
+                data.supply_chain.forEach(step => {
+                    const dateStr = step.timestamp ? new Date(step.timestamp).toLocaleString() : 'Unknown date';
+                    html += `<li class="supply-chain-item">
+                    <strong>${step.from_role.toUpperCase()} &rarr; ${step.to_role.toUpperCase()}</strong><br>
+                    <span style="color:#64748b; font-size:12px;">Location: ${step.location} | Date: ${dateStr}</span>
+                </li>`;
+                });
+                html += `</ul>`;
+            } else {
+                html += `<div class="result-item" style="margin-top:15px; color:#64748b;">No supply chain history available.</div>`;
+            }
+
+            resultBox.innerHTML = html;
+        }
+    </script>
+
+</body>
+
+</html>
